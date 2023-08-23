@@ -1,0 +1,17 @@
+{
+  "name": "aribasample",
+  "version": "1.0.0",
+  "description": "This repository contains code and documentation to set up an AWS Lambda function that calls an external REST API using Node.js and the `axios` library.",
+  "main": "index.js",
+  "type":"module",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.4.0"
+  }
+}
