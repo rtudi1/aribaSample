@@ -131,3 +131,4 @@ dist
 
 # lock files
 package-lock.json
+*.zip
