@@ -1,72 +1,84 @@
 import axios from "axios";
+
 export const handler = async (event, context) => {
-  const bearerToken = "4c3c29cd-017b-463e-9bf9-50da0e7e0030";
-  let response;
   try {
     const tokenUrl = "https://api.ariba.com/v2/oauth/token";
-    const queryParams = {
+    const tokenQueryParams = {
       grant_type: "openapi_2lo",
     };
-    const headers = {
-      apiKey: "stjCiIZILvIZwTWJUTWxzE5ykPCe8s3p",
+    const tokenHeaders = {
+      apiKey: process.env.apiKey,
+      accept: "application/json",
       Authorization: "Basic " + process.env.BASE64_ENCODED_CLIENT_SERVER,
     };
 
-    const res = await axios.get(tokenUrl, {
-      params: queryParams,
-      headers: headers,
+    const tokenResponse = await axios.post(tokenUrl, null, {
+      params: tokenQueryParams,
+      headers: tokenHeaders,
     });
 
-    console.log(JSON.stringify(res));
+    console.log("Token response:", tokenResponse.data);
 
-    response = {
-      statusCode: 200,
-      body: res,
-    };
-  } catch (error) {
-    console.log(error);
-
-    response = {
-      statusCode: 500,
-      body: "error",
-    };
-
-    throw error;
-  }
-
-  try {
-    const tokenUrl =
+    const pendingApprovables =
       "https://openapi.ariba.com/api/approval/v2/prod/pendingApprovables";
-    const queryParams = {
+    const approvablesQueryParams = {
       realm: "WillScotMobileMini-1-T",
     };
-    const headers = {
-      apiKey: "stjCiIZILvIZwTWJUTWxzE5ykPCe8s3p",
-      Authorization: "Bearer " + process.env.BEARER_TOKEN,
+    const approvablesHeaders = {
+      apiKey: process.env.apiKey,
+      accept: "application/json",
+      Authorization: "Bearer " + tokenResponse.data.access_token,
     };
 
-    const res = await axios.get(tokenUrl, {
-      params: queryParams,
-      headers: headers,
+    const approvablesResponse = await axios.get(pendingApprovables, {
+      params: approvablesQueryParams,
+      headers: approvablesHeaders,
     });
 
-    console.log(JSON.stringify(res));
+    console.log(approvablesResponse.data)
+    
+    const firstApprovableUniqueName =
+      approvablesResponse.data[0].approvableUniqueName;
 
-    response = {
+    const approvalRequestEndpoint =
+      "https://btus66kfq5eg3ilbwwms37pqwy.appsync-api.us-east-1.amazonaws.com/graphql";
+
+    const approvalRequestMutation = `
+      mutation ApprovalRequestHandler($payload: String) {
+        approvalRequestHandler(payload: $payload)
+      }
+    `;
+
+    const payload = JSON.stringify({
+      externalId: "{{uuid}}",
+      title: firstApprovableUniqueName,
+    });
+
+    const data = {
+      query: approvalRequestMutation,
+      variables: {
+        payload: payload,
+      },
+    };
+
+    const approvalRequestResponse = await axios.post(approvalRequestEndpoint, data, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("GraphQL API response:", approvalRequestResponse.data);
+
+    return {
       statusCode: 200,
-      body: res,
+      body: JSON.stringify(approvalRequestResponse.data),
     };
   } catch (error) {
-    console.log(error);
+    console.error(error);
 
-    response = {
+    return {
       statusCode: 500,
-      body: "error",
+      body: JSON.stringify({ error: "An error occurred" }),
     };
-
-    throw error;
   }
-
-  console.log("response", response);
-  return response;
 };
