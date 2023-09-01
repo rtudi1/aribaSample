@@ -1,4 +1,6 @@
 import axios from "axios";
+import { SignatureV4 } from '@aws-sdk/signature-v4';
+import { Sha256 } from '@aws-crypto/sha256-js';
 
 export const handler = async (event, context) => {
   try {
@@ -17,7 +19,7 @@ export const handler = async (event, context) => {
       headers: tokenHeaders,
     });
 
-    console.log("Token response:", tokenResponse.data);
+    // console.log("Token response:", tokenResponse.data);
 
     const pendingApprovables =
       "https://openapi.ariba.com/api/approval/v2/prod/pendingApprovables";
@@ -35,11 +37,6 @@ export const handler = async (event, context) => {
       headers: approvablesHeaders,
     });
 
-    console.log(approvablesResponse.data)
-    
-    const firstApprovableUniqueName =
-      approvablesResponse.data[0].approvableUniqueName;
-
     const approvalRequestEndpoint =
       "https://btus66kfq5eg3ilbwwms37pqwy.appsync-api.us-east-1.amazonaws.com/graphql";
 
@@ -49,11 +46,31 @@ export const handler = async (event, context) => {
       }
     `;
 
-    const payload = JSON.stringify({
-      externalId: "{{uuid}}",
-      title: firstApprovableUniqueName,
-    });
 
+    const payload = {
+      data: [{name: '', value: ''}],
+      errorCount: 0,
+      errorMessage: "",
+      externalId: "{{uuid}}",
+      lineItems: [{
+        attachments: [],
+        data:[{name: 'Quantity', value: '1 each'}],
+        icon:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRy81pnRNpXgy1DhtjgPIuvOFyNll-tffJYzZH6L7XcRT7s24hAHz4niPspT8u1jr-4aJY&usqp=CAU",
+        notes:"",
+        read:false,
+        title:"UI/UX"
+    }],
+      notes:"{{currentDateTime}}",
+      read: false,
+      recipient: "cgowda@mobilemini",
+      status: "Open",
+      submittedBy:"Chandan Gowda",
+      submittedDate:"{{current_timestamp}}",
+      sync:false,
+      system:"TIME OFF",
+      title:"{{current_timestamp}}"
+    }
+    
     const data = {
       query: approvalRequestMutation,
       variables: {
@@ -68,10 +85,10 @@ export const handler = async (event, context) => {
     });
 
     console.log("GraphQL API response:", approvalRequestResponse.data);
-
+    
     return {
       statusCode: 200,
-      body: JSON.stringify(approvalRequestResponse.data),
+      body: "Success"
     };
   } catch (error) {
     console.error(error);
